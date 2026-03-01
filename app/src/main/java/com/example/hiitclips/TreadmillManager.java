@@ -10,6 +10,8 @@ import android.os.Looper;
 import android.util.Log;
 
 public class TreadmillManager {
+    private static final String LOG_TAG = "HIIT_CLIPS";
+
     private final BluetoothLeScanner scanner;
 
     // Whether the bluetooth scanner is currently scanning.
@@ -22,20 +24,30 @@ public class TreadmillManager {
     private static final long SCAN_PERIOD = 10000;
 
     public TreadmillManager(BluetoothAdapter adapter) {
+        Log.d(LOG_TAG, "Initializing treadmill manager.");
         this.scanner = adapter.getBluetoothLeScanner();
     }
 
     /**
      * The callback method that will execute when the bluetooth scanner identifies a bluetooth device.
      */
-    private final ScanCallback leScanCallback = new ScanCallback() {
+    private final ScanCallback bluetoothScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
+            Log.d(LOG_TAG, "Bluetooth scan result retrieved.");
             BluetoothDevice device = result.getDevice();
+            String deviceName = device.getName();
 
-            if (device.getName() != null && device.getName().contains("HORIZON_T303 454E")) {
+            if (deviceName == null) {
+                Log.d(LOG_TAG, "Device with null name found.");
+
+            } else if (deviceName.equals("HORIZON_T303 454E")) {
+                Log.d(LOG_TAG, "Horizon T303 treadmill found.");
                 stopScan();
                 initiateConnection(device);
+
+            } else {
+                Log.d(LOG_TAG, "Unrecognized device found: " + deviceName);
             }
         }
     };
@@ -45,13 +57,14 @@ public class TreadmillManager {
      */
     public void startScan() {
         if (isScanning) return;
+        Log.d(LOG_TAG, "Starting bluetooth scan.");
 
         // Schedule the disabling of the scanner to save battery.
         handler.postDelayed(this::stopScan, SCAN_PERIOD);
 
         // Start scanning.
         isScanning = true;
-        scanner.startScan(leScanCallback);
+        scanner.startScan(bluetoothScanCallback);
     }
 
     /**
@@ -59,10 +72,11 @@ public class TreadmillManager {
      */
     public void stopScan() {
         if (!isScanning) return;
+        Log.d(LOG_TAG, "Stopping bluetooth scan.");
 
         // Stop scanning.
         isScanning = false;
-        scanner.stopScan(leScanCallback);
+        scanner.stopScan(bluetoothScanCallback);
 
         // Remove the callback from the handler so it doesn't fire again in case the scanner was stopped manually.
         handler.removeCallbacksAndMessages(null);
@@ -74,7 +88,7 @@ public class TreadmillManager {
      */
     private void initiateConnection(BluetoothDevice device) {
         // TODO: Actually establish the connection.
-        Log.d("HIIT_CLIPS", "Treadmill found! Connecting to: " + device.getName());
+        Log.d(LOG_TAG, "Treadmill found! Connecting to: " + device.getName());
     }
 
     /**
@@ -83,6 +97,6 @@ public class TreadmillManager {
      */
     private void setSpeed(double speed) {
         // TODO: Actually send the speed change command.
-        Log.d("HIIT_CLIPS", "Setting treadmill to speed: " + speed);
+        Log.d(LOG_TAG, "Setting treadmill to speed: " + speed);
     }
 }
