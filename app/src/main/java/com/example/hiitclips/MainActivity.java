@@ -8,6 +8,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -16,21 +18,36 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.hiitclips.databinding.ActivityMainBinding;
+
 public class MainActivity extends AppCompatActivity {
+
+    private ActivityMainBinding binding;
 
     private TreadmillManager treadmillManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
 
+        // Initialize binding.
+        ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
+
+        // Set the layout mode as edge to edge.
+        EdgeToEdge.enable(this);
+
+        // Set the binding root as the content view.
+        setContentView(binding.getRoot());
+
+        // Prevent app UI from drifting behind system elements.
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        // Bind the scan button.
+        binding.buttonScan.setOnClickListener(this::scanButtonClicked);
 
         // Ensure that permissions are granted and that bluetooth is enabled.
         // TODO: If permissions are requested and enabling bluetooth is requested, their dialogs overlap.
@@ -106,6 +123,14 @@ public class MainActivity extends AppCompatActivity {
             //       Ensure that bluetooth permission is granted before starting this activity.
             startActivity(enableBtIntent);
         }
+    }
+
+    /**
+     * The handler method for clicking the scan button.
+     * @param v The button that was clicked.
+     */
+    private void scanButtonClicked(View v) {
+        Log.d("HIIT_CLIPS", "Scan button pressed.");
     }
 
 }
