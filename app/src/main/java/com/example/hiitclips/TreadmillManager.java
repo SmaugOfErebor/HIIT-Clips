@@ -34,7 +34,7 @@ public class TreadmillManager {
             BluetoothDevice device = result.getDevice();
 
             // TODO: Replace the string below with one that actually identifies the real treadmill.
-            if (device.getName() != null && device.getName().contains("FIXME")) {
+            if (device.getName() != null && device.getName().contains("HORIZON_T303 454E")) {
                 stopScan();
                 initiateConnection(device);
             }
