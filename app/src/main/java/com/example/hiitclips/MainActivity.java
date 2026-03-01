@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -55,6 +54,9 @@ public class MainActivity extends AppCompatActivity {
         //       Make these checks follow a chain of responsibility.
         checkPermissions();
         ensureBluetoothEnabled();
+        // FIXME: Location is actually required to be enabled in order to scan for bluetooth devices.
+        //        Unbelievable design decision. Google agrees because newer versions (Android 12+) provide a workaround.
+        //        Handle enabling location for older phones and bypassing this requirement for newer ones.
 
         // Create the treadmill manager instance.
         // TODO: This is currently fragile because this code executes immediately instead of waiting until the user enables permissions and enables bluetooth.
@@ -130,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
      * @param v The button that was clicked.
      */
     private void scanButtonClicked(View v) {
-        Log.d("HIIT_CLIPS", "Scan button pressed.");
+        treadmillManager.startScan();
     }
 
 }
