@@ -3,6 +3,7 @@ package com.example.hiitclips;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -16,6 +17,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 public class MainActivity extends AppCompatActivity {
+
+    private TreadmillManager treadmillManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +38,13 @@ public class MainActivity extends AppCompatActivity {
         //       Make these checks follow a chain of responsibility.
         checkPermissions();
         ensureBluetoothEnabled();
+
+        // Create the treadmill manager instance.
+        // TODO: This is currently fragile because this code executes immediately instead of waiting until the user enables permissions and enables bluetooth.
+        //       For now, this is just "happy path" code, but should be made robust in the future.
+        BluetoothManager btManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter btAdapter = btManager.getAdapter();
+        treadmillManager = new TreadmillManager(btAdapter);
     }
 
     /**
@@ -97,4 +107,5 @@ public class MainActivity extends AppCompatActivity {
             startActivity(enableBtIntent);
         }
     }
+
 }
