@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
         //       For now, this is just "happy path" code, but should be made robust in the future.
         BluetoothManager btManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter btAdapter = btManager.getAdapter();
-        treadmillManager = new TreadmillManager(btAdapter);
+        treadmillManager = new TreadmillManager(getApplication(), btAdapter);
     }
 
     /**
