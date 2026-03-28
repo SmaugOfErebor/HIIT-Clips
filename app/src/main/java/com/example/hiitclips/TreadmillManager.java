@@ -1,10 +1,15 @@
 package com.example.hiitclips;
 
+import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -12,7 +17,9 @@ import android.util.Log;
 public class TreadmillManager {
     private static final String LOG_TAG = "HIIT_CLIPS";
 
+    private final Application application;
     private final BluetoothLeScanner scanner;
+    private BluetoothGatt bluetoothGatt;
 
     // Whether the bluetooth scanner is currently scanning.
     private boolean isScanning = false;
@@ -23,15 +30,24 @@ public class TreadmillManager {
     // The maximum time in milliseconds that the bluetooth scanner can scan for once started.
     private static final long SCAN_PERIOD = 10000;
 
-    public TreadmillManager(BluetoothAdapter adapter) {
+    public TreadmillManager(Application application, BluetoothAdapter adapter) {
         Log.d(LOG_TAG, "Initializing treadmill manager.");
+        // Use the application context for better safety with background tasks.
+        this.application = application;
         this.scanner = adapter.getBluetoothLeScanner();
     }
 
     /**
-     * The callback method that will execute when the bluetooth scanner identifies a bluetooth device.
+     * The callback definition for the bluetooth scanner.
      */
     private final ScanCallback bluetoothScanCallback = new ScanCallback() {
+        /**
+         * The method that will execute when the bluetooth scanner identifies a bluetooth device.
+         * @param callbackType Determines how this callback was triggered. Could be one of {@link
+         *     ScanSettings#CALLBACK_TYPE_ALL_MATCHES}, {@link ScanSettings#CALLBACK_TYPE_FIRST_MATCH}
+         *     or {@link ScanSettings#CALLBACK_TYPE_MATCH_LOST}
+         * @param result A Bluetooth LE scan result.
+         */
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             Log.d(LOG_TAG, "Bluetooth scan result retrieved.");
@@ -48,6 +64,43 @@ public class TreadmillManager {
 
             } else {
                 Log.d(LOG_TAG, "Unrecognized device found: " + deviceName);
+            }
+        }
+    };
+
+    /**
+     * The callback definition for the bluetooth GATT connection.
+     */
+    private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+        /**
+         * The method that will execute whenever the bluetooth GATT connection state changes.
+         * @param gatt GATT client
+         * @param status Status of the connect or disconnect operation. {@link
+         *     BluetoothGatt#GATT_SUCCESS} if the operation succeeds.
+         * @param newState Returns the new connection state. Can be one of {@link
+         *     BluetoothProfile#STATE_DISCONNECTED} or {@link BluetoothProfile#STATE_CONNECTED}
+         */
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                Log.d(LOG_TAG, "Connected to treadmill GATT server. Discovering services.");
+                gatt.discoverServices();
+
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                Log.d(LOG_TAG, "Disconnected from treadmill GATT server.");
+            }
+        }
+
+        /**
+         * The method that will execute when services are discovered via the bluetooth GATT connection.
+         * @param gatt GATT client invoked {@link BluetoothGatt#discoverServices}
+         * @param status {@link BluetoothGatt#GATT_SUCCESS} if the remote device has been explored
+         *     successfully.
+         */
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(LOG_TAG, "Treadmill GATT services discovered.");
             }
         }
     };
@@ -87,8 +140,9 @@ public class TreadmillManager {
      * @param device The bluetooth device to establish the GATT connection with.
      */
     private void initiateConnection(BluetoothDevice device) {
-        // TODO: Actually establish the connection.
-        Log.d(LOG_TAG, "Treadmill found! Connecting to: " + device.getName());
+        Log.d(LOG_TAG, "Connecting to treadmill.");
+        // TODO: This can fail and that case needs to be handled in the onConnectionStateChange callback method.
+        device.connectGatt(application, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
     }
 
     /**
