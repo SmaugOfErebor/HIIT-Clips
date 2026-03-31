@@ -1,0 +1,49 @@
+Probable speed setting BT attribute Protocol info:
+Opcode: Write Request (0x12)
+Authentication signature: false
+Command: false
+Method: Write Request (0x12)
+
+Handle: 0x0011
+Service UUID: 0xfff0
+UUID: 0xfff3
+
+
+Probable speed setting command values:
+These values were retrieved by snooping bluetooth communications from the proprietary treadmill control app.
+During my test, I decremented the tread speed by 1 repeatedly (this is important later).
+55aa21000305040092eb001f0000
+55aa220003050400a2dc001e0000
+55aa230003050400f285001d0000
+55aa240003050400c2b2001c0000
+55aa2500030504005237001b0000
+55aa2600030504006200001a0000
+
+
+Possible decoding of speed setting command:
+[0-1]   Probably a header / synchronization pattern (the Tuya MCU Standard Protocol uses this value: https://developer.tuya.com/en/docs/mcu-standard-protocol/Bluetooth-LE-Intergation-Base-Function?id=Kd3q32tjfcufw#title-2-Packet%20structure)
+[2]     Sequence / Counter (notice that this byte increments by one with each command)
+[3-4]   Constant (not sure what for)
+[5-6]   Command group (maybe?)
+[7]     Command / flag
+[8-9]   Checksum / CRC? (notice that these bytes appear "randomized")
+[10-11] Data / parameter (notice that these bytes decrement by one each command. I decremented the tread speed by 1 repeatedly during my test)
+[12-13] Padding / reserved (maybe?)
+
+
+Most likely checksum / CRC algorithm:
+CRC-16/IBM-3740
+
+Check out all the CRC algorithm output given the input "001f0000" here: https://crccalc.com/?crc=001f0000&method=CRC-16&datatype=hex&outtype=hex
+"001f0000" is the value of bytes 10-13 in the first speed setting command value above.
+The output for CRC-16/IBM-3740 is "EB92".
+Bytes 8-9 in the command value is "92eb", so it appears that the CRC algorithm is place in little endian ordering in the command value.
+
+Confirming with the remaining packets below:
+"001e0000" -> "DCA2"
+"001d0000" -> "85F2"
+"001c0000" -> "B2C2"
+"001b0000" -> "3752"
+"001a0000" -> "0062"
+
+They all match given the CRC-16/IBM-3740 algorithm.
