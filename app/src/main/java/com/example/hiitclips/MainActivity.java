@@ -8,7 +8,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -45,8 +47,9 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Bind the scan button.
+        // Bind the buttons.
         binding.buttonScan.setOnClickListener(this::scanButtonClicked);
+        binding.buttonSetSpeed.setOnClickListener(this::setSpeedButtonClicked);
 
         // Ensure that permissions are granted and that bluetooth is enabled.
         // TODO: If permissions are requested and enabling bluetooth is requested, their dialogs overlap.
@@ -133,6 +136,20 @@ public class MainActivity extends AppCompatActivity {
      */
     private void scanButtonClicked(View v) {
         treadmillManager.startScan();
+    }
+
+    /**
+     * Temporary method for debugging.
+     * Sends the next command in the sequence to figure out what any of these commands actually do.
+     * @param v The button that was clicked.
+     */
+    private void setSpeedButtonClicked(View v) {
+        Log.d("HIIT_CLIPS", "Set speed button clicked.");
+        EditText speedInput = findViewById(R.id.speedInput);
+        String speedString = speedInput.getText().toString();
+        // TODO: Handle parse failures.
+        double speedValue = Double.parseDouble(speedString);
+        treadmillManager.setSpeed(speedValue);
     }
 
 }
