@@ -35,9 +35,14 @@ public class TreadmillManager {
     // The maximum time in milliseconds that the bluetooth scanner can scan for once started.
     private static final long SCAN_PERIOD = 10000;
 
+    private BluetoothGatt btGatt;
+
     private static final UUID SERVICE_UUID = UUID.fromString("0000fff0-0000-1000-8000-00805f9b34fb");
-    private static final UUID CHAR_UUID    = UUID.fromString("0000fff4-0000-1000-8000-00805f9b34fb");
+    private static final UUID CONFIGURATION_CHAR_UUID = UUID.fromString("0000fff3-0000-1000-8000-00805f9b34fb");
+    private static final UUID NOTIFICATION_CHAR_UUID = UUID.fromString("0000fff4-0000-1000-8000-00805f9b34fb");
     private static final UUID CCCD_DESCRIPTOR_UUID   = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+
+    private int commandSequence = 1;
 
     public TreadmillManager(Application application, BluetoothAdapter adapter) {
         Log.d(LOG_TAG, "Initializing treadmill manager.");
@@ -110,6 +115,7 @@ public class TreadmillManager {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(LOG_TAG, "Treadmill GATT services discovered.");
+                btGatt = gatt;
                 enableNotifications(gatt);
             }
         }
@@ -191,15 +197,15 @@ public class TreadmillManager {
      * @param gatt The bluetooth GATT object to subscribe to notifications from.
      */
     private void enableNotifications(BluetoothGatt gatt) {
-        Log.d(LOG_TAG, "Retrieving Treadmill Logic service.");
+        Log.d(LOG_TAG, "Retrieving Treadmill GATT service.");
         BluetoothGattService service = gatt.getService(SERVICE_UUID);
         if (service == null) {
-            Log.d(LOG_TAG, "Failed to retrieve Treadmill Logic service.");
+            Log.d(LOG_TAG, "Failed to retrieve Treadmill GATT service.");
             return;
         }
 
         Log.d(LOG_TAG, "Retrieving Data Characteristic from Treadmill Logic service.");
-        BluetoothGattCharacteristic characteristic = service.getCharacteristic(CHAR_UUID);
+        BluetoothGattCharacteristic characteristic = service.getCharacteristic(NOTIFICATION_CHAR_UUID);
         if (characteristic == null) {
             Log.d(LOG_TAG, "Failed to retrieve the Data Characteristic.");
             return;
@@ -220,13 +226,51 @@ public class TreadmillManager {
         gatt.writeDescriptor(descriptor);
     }
 
+    private void sendPayload(byte[] payload) {
+        Log.d(LOG_TAG, "Retrieving Treadmill GATT service.");
+        BluetoothGattService service = btGatt.getService(SERVICE_UUID);
+        if (service == null) {
+            Log.d(LOG_TAG, "Failed to retrieve Treadmill GATT service.");
+            return;
+        }
+
+        BluetoothGattCharacteristic characteristic = service.getCharacteristic(CONFIGURATION_CHAR_UUID);
+        btGatt.writeCharacteristic(characteristic, payload, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+    }
+
     /**
-     * Sends a speed change command to the connected treadmill.
+     * Sends a set speed command to the connected treadmill.
      * @param speed The target speed to set on the connected treadmill.
      */
-    private void setSpeed(double speed) {
-        // TODO: Actually send the speed change command.
+    public void setSpeed(double speed) {
+        // TODO: Handle values outside the accepted range of the treadmill.
         Log.d(LOG_TAG, "Setting treadmill to speed: " + speed);
+
+        // Convert the speed to the proper unit of measurement.
+        // The unit of measurement is tenths of miles per hour. 1 = 0.1 MPH
+        // NOTE: Using Math.round to prevent imprecision from affecting the value for the command.
+        // Examples: 3.1 becomes "31" | 3.0 becomes "30"
+        int speedInt = (int) Math.round(speed * 10);
+
+        // Convert the speed to hex and place it in the portion of the command that runs through the CRC.
+        String speedHex = String.format("00%02X0000", speedInt);
+
+        // Get the CRC string from the speed.
+        String crcString = CrcHelper.getCrcString(java.util.HexFormat.of().parseHex(speedHex));
+
+        // Build the command.
+        String command = "55AA" +
+                String.format("%02X", commandSequence) +
+                "0003050400" +
+                crcString +
+                speedHex;
+
+        // Increment the command sequence so the next command doesn't get rejected.
+        commandSequence++;
+
+        // Send the set speed command to the treadmill.
+        Log.d(LOG_TAG, "Sending command to treadmill: " + command);
+        sendPayload(HexHelper.hexToBytes(command));
     }
 
 }

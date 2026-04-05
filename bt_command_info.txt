@@ -26,13 +26,12 @@ Possible decoding of speed setting command:
 [3-4]   Constant (not sure what for)
 [5-6]   Command group (maybe?)
 [7]     Command / flag
-[8-9]   Checksum / CRC? (notice that these bytes appear "randomized")
-[10-11] Data / parameter (notice that these bytes decrement by one each command. I decremented the tread speed by 1 repeatedly during my test)
-[12-13] Padding / reserved (maybe?)
+[8-9]   Checksum / CRC (notice that these bytes appear "randomized")
+[10-11] Speed in tenths of MPH in Little Endian ordering.
+[12-13] Padding / reserved (unless 10-13 is actually a word-flipped, Little Endian 32 bit integer? There may be some credibility to this since this byte goes into the CRC)
 
 
-Most likely checksum / CRC algorithm:
-CRC-16/IBM-3740
+Checksum / CRC algorithm: CRC-16/IBM-3740
 
 Check out all the CRC algorithm output given the input "001f0000" here: https://crccalc.com/?crc=001f0000&method=CRC-16&datatype=hex&outtype=hex
 "001f0000" is the value of bytes 10-13 in the first speed setting command value above.
@@ -47,3 +46,9 @@ Confirming with the remaining packets below:
 "001a0000" -> "0062"
 
 They all match given the CRC-16/IBM-3740 algorithm.
+
+
+
+Potential tread stop command values:
+55aa2d00011400000000
+55aa2e0001000200b8d21400
