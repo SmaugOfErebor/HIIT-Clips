@@ -6,6 +6,9 @@ public final class CrcHelper {
 
     /**
      * Performs the CRC-16/IBM-3740 checksum and returns the result as a string in Little Endian ordering.
+     * Given the limited number of potential inputs, this might be better as a lookup table in a high performance scenario.
+     * However, hello potential hiring manager, I understand bit manipulations.
+     *
      * The algorithm is explained below:
      * Step 1: The result begins as all 1s.
      * Step 2: Store the most significant bit of the input and the result.
@@ -25,7 +28,7 @@ public final class CrcHelper {
             int bInt = b & 0xFF;
             for (int i = 0; i < 8; i++) {
                 // Get the most significant bit of the input and the result.
-                boolean inputMSB = ((bInt >> 7  & 1) == 1);
+                boolean inputMSB = ((bInt >> 7 & 1) == 1);
                 boolean resultMSB = ((result >> 15 & 1) == 1);
 
                 // Left shift the input and the result by 1.
